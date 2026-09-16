@@ -1,107 +1,74 @@
-class Cell:
-    """Represents one cell on the Minesweeper board."""
+"""
+File: board.py
+Module: BoardManager
+Description:
+    Manages the 10x10 Minesweeper board. The board is stored as a
+    two-dimensional array of Cell objects.
+Inputs:
+    Row and column positions when accessing or modifying cells.
+Outputs:
+    Cell objects or the entire board.
+External Sources:
+    OpenAI ChatGPT was used to assist with integration of the Cell
+    class with the BoardManager.
+Author:
+    Emma Du
+Created:
+    2026
+Course:
+    EECS 581 - Project 1 (Minesweeper)
+"""
 
-    COVERED = 0
-    FLAGGED = 1
-    UNCOVERED = 2
+from .cell import Cell
+
+
+class BoardManager:
+    """Manages the 10x10 Minesweeper board."""
+
+    ROWS = 10
+    COLS = 10
+
+    # Cell state constants are kept here as aliases so other modules
+    # can access them through BoardManager if needed.
+    COVERED = Cell.COVERED
+    FLAGGED = Cell.FLAGGED
+    UNCOVERED = Cell.UNCOVERED
 
     def __init__(self):
-        """
-        Initialize a new cell.
-
-        Every cell begins covered, does not contain a mine, and has
-        an adjacent mine count of zero.
-        """
-        self.state = self.COVERED
-        self.is_mine = False
-        self.adjacent_mines = 0
+        """Create and initialize the board."""
+        self.reset()
 
     def reset(self):
-        """
-        Reset the cell to its initial state.
-        """
-        self.state = self.COVERED
-        self.is_mine = False
-        self.adjacent_mines = 0
+        """Reset the board by creating a new 10x10 grid of Cell objects."""
+        self.grid = [
+            [Cell() for _ in range(self.COLS)]
+            for _ in range(self.ROWS)
+        ]
 
-    def getState(self):
+    def getCell(self, row, col):
         """
-        Return the current state of the cell.
-
-        Returns:
-            int: COVERED, FLAGGED, or UNCOVERED.
-        """
-        return self.state
-
-    def setState(self, state):
-        """
-        Set the current state of the cell.
+        Return the Cell object at the specified board position.
 
         Args:
-            state (int): The new state of the cell.
-        """
-        self.state = state
-
-    def hasMine(self):
-        """
-        Return whether the cell contains a mine.
+            row (int): Row index from 0 to 9.
+            col (int): Column index from 0 to 9.
 
         Returns:
-            bool: True if the cell contains a mine, otherwise False.
+            Cell: Cell object at the specified position.
         """
-        return self.is_mine
+        return self.grid[row][col]
 
-    def setMine(self, value=True):
+    def setCell(self, row, col, state):
         """
-        Set whether the cell contains a mine.
+        Set the visible state of a cell.
 
         Args:
-            value (bool): True if the cell should contain a mine,
-                          otherwise False.
+            row (int): Row index from 0 to 9.
+            col (int): Column index from 0 to 9.
+            state (int): COVERED, FLAGGED, or UNCOVERED.
         """
-        self.is_mine = value
+        self.grid[row][col].setState(state)
 
-    def getAdjacentMines(self):
-        """
-        Return the number of mines surrounding the cell.
-
-        Returns:
-            int: Number of adjacent mines from 0 to 8.
-        """
-        return self.adjacent_mines
-
-    def setAdjacentMines(self, count):
-        """
-        Set the number of mines surrounding the cell.
-
-        Args:
-            count (int): Number of adjacent mines from 0 to 8.
-        """
-        self.adjacent_mines = count
-
-    def isCovered(self):
-        """
-        Return whether the cell is covered.
-
-        Returns:
-            bool: True if the cell is covered, otherwise False.
-        """
-        return self.state == self.COVERED
-
-    def isFlagged(self):
-        """
-        Return whether the cell is flagged.
-
-        Returns:
-            bool: True if the cell is flagged, otherwise False.
-        """
-        return self.state == self.FLAGGED
-
-    def isUncovered(self):
-        """
-        Return whether the cell is uncovered.
-
-        Returns:
-            bool: True if the cell is uncovered, otherwise False.
-        """
-        return self.state == self.UNCOVERED
+    def getBoard(self):
+        """Return the entire 10x10 grid of Cell objects."""
+        return self.grid
