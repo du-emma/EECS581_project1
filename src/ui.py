@@ -34,6 +34,7 @@ MINE_COUNT = 10
 
 
 class MinesweeperUI:
+    # Initialize the UI with the current board, game state, and input handling.
     def __init__(self, screen, board, game):
         self.screen = screen
         self.board = board
@@ -46,6 +47,7 @@ class MinesweeperUI:
         self.bgcolor = (110, 110, 110)
         self.assets = self._load_assets()
 
+    # Load all visual assets for covered, flagged, empty, and numbered cells.
     def _load_assets(self):
         base_dir = Path(__file__).resolve().parent.parent
         image_dir = base_dir / "images"
@@ -84,6 +86,7 @@ class MinesweeperUI:
 
         return assets
 
+    # Fill the screen and draw the empty board background before cells are painted.
     def draw_grid(self):
         self.screen.fill(self.bgcolor)
         for row in range(self.board.ROWS):
@@ -92,6 +95,7 @@ class MinesweeperUI:
                 y = BOARD_ORIGIN[1] + row * CELL_SIZE
                 self.screen.blit(self.assets["blank"], (x, y))
 
+    # Convert the game state into a user-facing status message.
     def get_status_text(self):
         status = self.game.getStatus()
         if status == "WON":
@@ -100,6 +104,7 @@ class MinesweeperUI:
             return "Game lost"
         return "Now playing..."
 
+    # Draw the current game status above the board.
     def draw_status(self):
         font = pygame.font.SysFont(None, 48)
         text = self.get_status_text()
@@ -109,6 +114,7 @@ class MinesweeperUI:
         rect = text_surface.get_rect(topleft=(x, y))
         self.screen.blit(text_surface, rect)
 
+    # Draw the row and column labels around the board edges.
     def draw_labels(self):
         rows = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         cols = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
@@ -123,6 +129,7 @@ class MinesweeperUI:
             col_label = font.render(item, True, label_color, self.bgcolor)
             self.screen.blit(col_label, (220 + j * 40 - col_label.get_width() // 2, 605))
 
+    # Draw the remaining flag counter at the top of the board area.
     def draw_counter(self):
         digit_map = {}
         for digit in range(10):
@@ -142,6 +149,7 @@ class MinesweeperUI:
         self.screen.blit(digit_map[left_digit], (519, 120))
         self.screen.blit(digit_map[right_digit], (559, 120))
 
+    # Show a restart button only after the player loses the game.
     def draw_new_game_button(self):
         if self.game.getStatus() != "LOST":
             return
@@ -156,6 +164,7 @@ class MinesweeperUI:
         self.screen.blit(text, text_rect)
         return button_rect
 
+    # Render one cell based on its covered, flagged, mine, and number state.
     def draw_cell(self, row, col):
         cell = self.board.getCell(row, col)
         x = BOARD_ORIGIN[0] + col * CELL_SIZE
@@ -179,6 +188,7 @@ class MinesweeperUI:
         else:
             self.screen.blit(self.assets[str(count)], (x, y))
 
+    # Repaint the entire screen from the current game and board state.
     def render(self):
         self.draw_grid()
         self.draw_status()
@@ -190,6 +200,7 @@ class MinesweeperUI:
         self.draw_new_game_button()
         pygame.display.flip()
 
+    # Create a fresh board and game instance for a new round.
     def reset_game(self):
         self.board = BoardManager()
         self.game = Game(self.board, MINE_COUNT)
@@ -200,6 +211,7 @@ class MinesweeperUI:
         )
         self.render()
 
+    # Handle mouse input, including the restart button after a loss.
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.game.getStatus() == "LOST":
@@ -223,6 +235,7 @@ class MinesweeperUI:
         self.render()
 
 
+# Launch the pygame window and start the Minesweeper game loop.
 def main():
     pygame.init()
     screen = pygame.display.set_mode((800, 800))
