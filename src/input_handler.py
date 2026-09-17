@@ -36,7 +36,7 @@ class InputHandler:
 
             # Button 1 = Left Click / Tap
             if event.button == 1:
-                return {"action": "reveal", "row": row, "col": col}
+                return {"action": "uncover", "row": row, "col": col}
 
             # Button 3 = Right Click / Two-finger tap
             elif event.button == 3:
