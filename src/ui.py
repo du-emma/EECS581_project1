@@ -1,195 +1,179 @@
 import pygame
+from pathlib import Path
 
 try:
     from .board import BoardManager
     from .game import Game
+    from .input_handler import InputHandler
 except ImportError:  # pragma: no cover
     from board import BoardManager
     from game import Game
+    from input_handler import InputHandler
 
 
-# Initialize Pygame
-pygame.init()
+BOARD_ORIGIN = (200, 200)
+CELL_SIZE = 40
+BOARD_SIZE = 10
+MINE_COUNT = 10
 
-board = BoardManager()
-game = Game(board, 10)
 
-# Set up the game window
-screen = pygame.display.set_mode((800, 800))
-pygame.display.set_caption("Minesweeper")
+class MinesweeperUI:
+    def __init__(self, screen, board, game):
+        self.screen = screen
+        self.board = board
+        self.game = game
+        self.input_handler = InputHandler(
+            cell_size=CELL_SIZE,
+            board_origin=BOARD_ORIGIN,
+            board_size=self.board.ROWS,
+        )
+        self.bgcolor = (110, 110, 110)
+        self.assets = self._load_assets()
 
-blankCell = pygame.image.load("images/blank_cell.png")
-flaggedCell = pygame.image.load("images/flagged_cell.png")
-openBombCell = pygame.image.load("images/bomb_cell.png")
-openEmptyCell = pygame.image.load("images/open_empty_cell.png")
-open1Cell = pygame.image.load("images/open_1_cell.png")
-open2Cell = pygame.image.load("images/open_2_cell.png")
-open3Cell = pygame.image.load("images/open_3_cell.png")
-open4Cell = pygame.image.load("images/open_4_cell.png")
-open5Cell = pygame.image.load("images/open_5_cell.png")
-open6Cell = pygame.image.load("images/open_6_cell.png")
-open7Cell = pygame.image.load("images/open_7_cell.png")
-open8Cell = pygame.image.load("images/open_8_cell.png")
-counter0 = pygame.image.load("images/counter_0.png")
-counter1 = pygame.image.load("images/counter_1.png")
-counter2 = pygame.image.load("images/counter_2.png")
-counter3 = pygame.image.load("images/counter_3.png")
-counter4 = pygame.image.load("images/counter_4.png")
-counter5 = pygame.image.load("images/counter_5.png")
-counter6 = pygame.image.load("images/counter_6.png")
-counter7 = pygame.image.load("images/counter_7.png")
-counter8 = pygame.image.load("images/counter_8.png")
-counter9 = pygame.image.load("images/counter_9.png")
+    def _load_assets(self):
+        base_dir = Path(__file__).resolve().parent.parent
+        image_dir = base_dir / "images"
+        assets = {}
+        names = {
+            "blank": "blank_cell.png",
+            "flagged": "flagged_cell.png",
+            "bomb": "bomb_cell.png",
+            "empty": "open_empty_cell.png",
+            "1": "open_1_cell.png",
+            "2": "open_2_cell.png",
+            "3": "open_3_cell.png",
+            "4": "open_4_cell.png",
+            "5": "open_5_cell.png",
+            "6": "open_6_cell.png",
+            "7": "open_7_cell.png",
+            "8": "open_8_cell.png",
+        }
 
-leftCounterDigitPos = (519, 120)
-rightCounterDigitPos = (559, 120)
-
-bgcolor = (110, 110, 110)
-screen.fill(bgcolor)
-
-grid = board.getBoard()
-
-class uiManager:
-    def __init__(self):
-        self.drawGrid()
-        self.drawGridLabels()
-        self.updateCounter()
-
-    def setCellStatus(self, cell):
-        cellPos = self.findCellPos(cell)
-
-        if cell.getState() == 0: # covered
-            screen.blit(blankCell, cellPos)
-        elif cell.getState() == 1: # flagged
-            screen.blit(flaggedCell, cellPos)
-        elif cell.getState() == 2: # uncovered
-            if cell.hasMine():
-                screen.blit(openBombCell, cellPos)
-                self.triggerLoss()
+        for key, filename in names.items():
+            path = image_dir / filename
+            if path.exists():
+                assets[key] = pygame.image.load(str(path)).convert_alpha()
             else:
-                numAdjacentMines = cell.getAdjacentMines()
-                match numAdjacentMines:
-                    case 0:
-                        screen.blit(openEmptyCell, cellPos)
-                    case 1:
-                        screen.blit(open1Cell, cellPos)
-                    case 2:
-                        screen.blit(open2Cell, cellPos)
-                    case 3:
-                        screen.blit(open3Cell, cellPos)
-                    case 4:
-                        screen.blit(open4Cell, cellPos)
-                    case 5:
-                        screen.blit(open5Cell, cellPos)
-                    case 6:
-                        screen.blit(open6Cell, cellPos)
-                    case 7:
-                        screen.blit(open7Cell, cellPos)
-                    case 8:
-                        screen.blit(open8Cell, cellPos)
-        self.updateCounter()
-        pygame.display.flip() # updates the window
+                surface = pygame.Surface((CELL_SIZE, CELL_SIZE))
+                surface.fill((200, 200, 200))
+                if key == "flagged":
+                    surface.fill((255, 0, 0))
+                elif key == "bomb":
+                    surface.fill((0, 0, 0))
+                elif key == "empty":
+                    surface.fill((220, 220, 220))
+                elif key in {"1", "2", "3", "4", "5", "6", "7", "8"}:
+                    surface.fill((180, 180, 180))
+                assets[key] = surface
 
-    def updateCounter(self):
-        number = game.remainingFlags()
-        rightCounterDigit = number % 10
-        leftCounterDigit = (number - rightCounterDigit) / 10
+        return assets
 
-        match rightCounterDigit:
-            case 0:
-                screen.blit(counter0, rightCounterDigitPos)
-            case 1:
-                screen.blit(counter1, rightCounterDigitPos)
-            case 2:
-                screen.blit(counter2, rightCounterDigitPos)
-            case 3:
-                screen.blit(counter3, rightCounterDigitPos)
-            case 4:
-                screen.blit(counter4, rightCounterDigitPos)
-            case 5:
-                screen.blit(counter5, rightCounterDigitPos)
-            case 6:
-                screen.blit(counter6, rightCounterDigitPos)
-            case 7:
-                screen.blit(counter7, rightCounterDigitPos)
-            case 8:
-                screen.blit(counter8, rightCounterDigitPos)
-            case 9:
-                screen.blit(counter9, rightCounterDigitPos)
-        
-        match leftCounterDigit:
-            case 0:
-                screen.blit(counter0, leftCounterDigitPos)
-            case 1:
-                screen.blit(counter1, leftCounterDigitPos)
-            case 2:
-                screen.blit(counter2, leftCounterDigitPos)
-            case 3:
-                screen.blit(counter3, leftCounterDigitPos)
-            case 4:
-                screen.blit(counter4, leftCounterDigitPos)
-            case 5:
-                screen.blit(counter5, leftCounterDigitPos)
-            case 6:
-                screen.blit(counter6, leftCounterDigitPos)
-            case 7:
-                screen.blit(counter7, leftCounterDigitPos)
-            case 8:
-                screen.blit(counter8, leftCounterDigitPos)
-            case 9:
-                screen.blit(counter9, leftCounterDigitPos)
-        
-        pygame.display.flip() # updates the window
+    def draw_grid(self):
+        self.screen.fill(self.bgcolor)
+        for row in range(self.board.ROWS):
+            for col in range(self.board.COLS):
+                x = BOARD_ORIGIN[0] + col * CELL_SIZE
+                y = BOARD_ORIGIN[1] + row * CELL_SIZE
+                self.screen.blit(self.assets["blank"], (x, y))
 
-    def triggerLoss(self):
-
-        # Quit Pygame
-        pygame.quit()
-        return
-
-    def triggerWin(self):
-        return
-
-    def findCellPos(self, cell):
-        for i, row in enumerate(grid):
-            if cell in row:
-                return (i, row.index(cell))
-
-    # https://stackoverflow.com/questions/33963361/how-to-make-a-grid-in-pygame
-    def drawGrid(self):
-        #blockSize = 40px
-        for x in range(len(grid)):
-            for y in range(len(grid[x])):
-                screen.blit(blankCell, (200 + 40*x, 200 + 40*y))
-
-    def drawGridLabels(self):
+    def draw_labels(self):
         rows = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         cols = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
         label_color = (255, 255, 255)
         font = pygame.font.SysFont(None, 40)
 
-        i = 0
-        for item in rows:
-            row_image = font.render(item, True, label_color, bgcolor)
-            screen.blit(row_image, (180 - (row_image.get_width() / 2), 207 + i))
-            i += 40
+        for i, item in enumerate(rows):
+            row_label = font.render(item, True, label_color, self.bgcolor)
+            self.screen.blit(row_label, (180 - row_label.get_width() // 2, 207 + i * 40))
 
-        j = 0
-        for item in cols:
-            col_image = font.render(item, True, label_color, bgcolor)
-            screen.blit(col_image, (220 + j - (col_image.get_width() / 2), 605))
-            j += 40
+        for j, item in enumerate(cols):
+            col_label = font.render(item, True, label_color, self.bgcolor)
+            self.screen.blit(col_label, (220 + j * 40 - col_label.get_width() // 2, 605))
+
+    def draw_counter(self):
+        digit_map = {}
+        for digit in range(10):
+            filename = f"counter_{digit}.png"
+            path = Path(__file__).resolve().parent.parent / "images" / filename
+            if path.exists():
+                digit_map[digit] = pygame.image.load(str(path)).convert_alpha()
+            else:
+                surf = pygame.Surface((20, 30))
+                surf.fill((200, 200, 200))
+                digit_map[digit] = surf
+
+        remaining = max(self.game.remainingFlags(), 0)
+        right_digit = remaining % 10
+        left_digit = remaining // 10
+
+        self.screen.blit(digit_map[left_digit], (519, 120))
+        self.screen.blit(digit_map[right_digit], (559, 120))
+
+    def draw_cell(self, row, col):
+        cell = self.board.getCell(row, col)
+        x = BOARD_ORIGIN[0] + col * CELL_SIZE
+        y = BOARD_ORIGIN[1] + row * CELL_SIZE
+
+        if cell.isFlagged():
+            self.screen.blit(self.assets["flagged"], (x, y))
+            return
+
+        if not cell.isUncovered():
+            self.screen.blit(self.assets["blank"], (x, y))
+            return
+
+        if cell.hasMine():
+            self.screen.blit(self.assets["bomb"], (x, y))
+            return
+
+        count = cell.getAdjacentMines()
+        if count == 0:
+            self.screen.blit(self.assets["empty"], (x, y))
+        else:
+            self.screen.blit(self.assets[str(count)], (x, y))
+
+    def render(self):
+        self.draw_grid()
+        for row in range(self.board.ROWS):
+            for col in range(self.board.COLS):
+                self.draw_cell(row, col)
+        self.draw_labels()
+        self.draw_counter()
+        pygame.display.flip()
+
+    def handle_event(self, event):
+        action = self.input_handler.handle_event(event)
+        if action is None:
+            return
+
+        row = action["row"]
+        col = action["col"]
+
+        if action["action"] == "uncover":
+            self.game.uncover(row, col)
+        elif action["action"] == "flag":
+            self.game.toggleFlag(row, col)
+
+        self.render()
 
 
 def main():
-    ui = uiManager()
-    pygame.display.flip()
+    pygame.init()
+    screen = pygame.display.set_mode((800, 800))
+    pygame.display.set_caption("Minesweeper")
+
+    board = BoardManager()
+    game = Game(board, MINE_COUNT)
+    ui = MinesweeperUI(screen, board, game)
+    ui.render()
 
     running = True
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            else:
+                ui.handle_event(event)
 
     pygame.quit()
 
