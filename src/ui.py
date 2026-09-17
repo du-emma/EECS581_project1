@@ -1,13 +1,18 @@
 import pygame
 
-from .board import BoardManager
-from .game import Game
+try:
+    from .board import BoardManager
+    from .game import Game
+except ImportError:  # pragma: no cover
+    from board import BoardManager
+    from game import Game
+
 
 # Initialize Pygame
 pygame.init()
 
 board = BoardManager()
-game = Game()
+game = Game(board, 10)
 
 # Set up the game window
 screen = pygame.display.set_mode((800, 800))
@@ -57,7 +62,7 @@ class uiManager:
             screen.blit(blankCell, cellPos)
         elif cell.getState() == 1: # flagged
             screen.blit(flaggedCell, cellPos)
-        elif cell.getState == 2: # uncovered
+        elif cell.getState() == 2: # uncovered
             if cell.hasMine():
                 screen.blit(openBombCell, cellPos)
                 self.triggerLoss()
@@ -174,4 +179,21 @@ class uiManager:
             col_image = font.render(item, True, label_color, bgcolor)
             screen.blit(col_image, (220 + j - (col_image.get_width() / 2), 605))
             j += 40
+
+
+def main():
+    ui = uiManager()
+    pygame.display.flip()
+
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+    pygame.quit()
+
+
+if __name__ == "__main__":
+    main()
 
