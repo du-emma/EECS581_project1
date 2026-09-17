@@ -1,3 +1,19 @@
+"""
+Module: UI
+Description:
+    Defines the pygame-based user interface for the Minesweeper game,
+    including rendering the board, status text, controls, and reset flow.
+Inputs:
+    A pygame screen, board manager instance, and current game state.
+Outputs:
+    Drawn board visuals, status messages, and click-based interactions.
+External Sources:
+    Stack Overflow was used as a guide for drawing a grid using pygame.
+Author:
+    Megan Svoren, GitHub Copilot
+Created:
+    9/14/26
+"""
 import pygame
 from pathlib import Path
 
@@ -76,6 +92,23 @@ class MinesweeperUI:
                 y = BOARD_ORIGIN[1] + row * CELL_SIZE
                 self.screen.blit(self.assets["blank"], (x, y))
 
+    def get_status_text(self):
+        status = self.game.getStatus()
+        if status == "WON":
+            return "Game won!"
+        if status == "LOST":
+            return "Game lost"
+        return "Now playing..."
+
+    def draw_status(self):
+        font = pygame.font.SysFont(None, 48)
+        text = self.get_status_text()
+        text_surface = font.render(text, True, (255, 255, 255), self.bgcolor)
+        x = BOARD_ORIGIN[0]
+        y = BOARD_ORIGIN[1] - 50
+        rect = text_surface.get_rect(topleft=(x, y))
+        self.screen.blit(text_surface, rect)
+
     def draw_labels(self):
         rows = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
         cols = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
@@ -109,6 +142,20 @@ class MinesweeperUI:
         self.screen.blit(digit_map[left_digit], (519, 120))
         self.screen.blit(digit_map[right_digit], (559, 120))
 
+    def draw_new_game_button(self):
+        if self.game.getStatus() != "LOST":
+            return
+
+        button_rect = pygame.Rect(300, 650, 200, 60)
+        pygame.draw.rect(self.screen, (70, 70, 70), button_rect)
+        pygame.draw.rect(self.screen, (255, 255, 255), button_rect, 2)
+
+        font = pygame.font.SysFont(None, 36)
+        text = font.render("New Game", True, (255, 255, 255))
+        text_rect = text.get_rect(center=button_rect.center)
+        self.screen.blit(text, text_rect)
+        return button_rect
+
     def draw_cell(self, row, col):
         cell = self.board.getCell(row, col)
         x = BOARD_ORIGIN[0] + col * CELL_SIZE
@@ -134,14 +181,33 @@ class MinesweeperUI:
 
     def render(self):
         self.draw_grid()
+        self.draw_status()
         for row in range(self.board.ROWS):
             for col in range(self.board.COLS):
                 self.draw_cell(row, col)
         self.draw_labels()
         self.draw_counter()
+        self.draw_new_game_button()
         pygame.display.flip()
 
+    def reset_game(self):
+        self.board = BoardManager()
+        self.game = Game(self.board, MINE_COUNT)
+        self.input_handler = InputHandler(
+            cell_size=CELL_SIZE,
+            board_origin=BOARD_ORIGIN,
+            board_size=self.board.ROWS,
+        )
+        self.render()
+
     def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.game.getStatus() == "LOST":
+                button_rect = self.draw_new_game_button()
+                if button_rect is not None and button_rect.collidepoint(event.pos):
+                    self.reset_game()
+                    return
+
         action = self.input_handler.handle_event(event)
         if action is None:
             return
