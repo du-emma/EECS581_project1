@@ -1,22 +1,11 @@
 """
 File: board.py
-Module: BoardManager
-Description:
-    Manages the 10x10 Minesweeper board. The board is stored as a
-    two-dimensional array of Cell objects.
-Inputs:
-    Row and column positions when accessing or modifying cells.
-Outputs:
-    Cell objects or the entire board.
-External Sources:
-    OpenAI ChatGPT was used to assist with integration of the Cell
-    class with the BoardManager.
-Author:
-    Emma Du
-Created:
-    2026
-Course:
-    EECS 581 - Project 1 (Minesweeper)
+Description:Manages the 10x10 Minesweeper board. The board is stored as a 2D array of Cell objects.
+Inputs:Row and column positions when accessing or modifying cells.
+Outputs: Cell objects or the entire board.
+External Sources: OpenAI ChatGPT was used to assist with integration of the Cell class with the BoardManager.
+Author: Emma Roy
+Course: EECS 581 - Project 1 (Minesweeper)
 """
 
 from .cell import Cell
@@ -28,7 +17,7 @@ class BoardManager:
     ROWS = 10
     COLS = 10
 
-    # Cell state constants are kept here as aliases so other modules
+    # cell state constants are kept here as aliases so other modules
     # can access them through BoardManager if needed.
     COVERED = Cell.COVERED
     FLAGGED = Cell.FLAGGED
