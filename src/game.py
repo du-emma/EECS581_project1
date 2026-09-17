@@ -9,9 +9,9 @@ Course: EECS 581 - Project 1 (Minesweeper)
 
 from enum import Enum
 
-from board import Cell
-from mine_generator import MineGenerator
-from number_calculator import calculateNumbers
+from .cell import Cell
+from .mine_generator import MineGenerator
+from .number_calculator import calculateNumbers
 
 BOARD_SIZE = 10
 
