@@ -38,52 +38,14 @@ screen.fill(bgcolor)
 
 cells = []
 
-class Cell:
-    def __init__(self, x, y, i):
-        self.pos = (x, y)
-        self.index = i
-        self.isBomb = False
-        self.status = -1
-        # -2=flagged; -1=blank; 0=opened empty; 1-8=opened with bomb around; 9=bomb
-
-    def flag(self):
-        if self.status == -2:
-            self.status = -1
-            screen.blit(blankCell, self.pos)
-        elif self.status == -1:
-            self.status == -2
-            screen.blit(flaggedCell, self.pos)
-
-    #def update(self, mouseButton):
-    #    if mouseButton == 1:
-    #        match self.status:
-    #            case -1: # If blank
-    #                screen.blit(blankCell, self.pos)
-    #            case 1:
-    #                screen.blit(open1Cell, self.pos)
-    #            case 2:
-    #                screen.blit(open2Cell, self.pos)
-    #            case 3:
-    #                screen.blit(open3Cell, self.pos)
-    #            case 4:
-    #                screen.blit(open4Cell, self.pos)
-    #            case 5:
-    #                screen.blit(open5Cell, self.pos)
-    #            case 6:
-    #                screen.blit(open6Cell, self.pos)
-    #            case 7:
-    #                screen.blit(open7Cell, self.pos)
-    #            case 8:
-    #                screen.blit(open8Cell, self.pos)
-    #            case 9: # If bomb
-    #                screen.blit(blankCell, self.pos)
-    #    elif mouseButton == 3:
-    #        if self.status == -2: # If already flagged, unflag
-    #            screen.blit(blankCell, self.pos)
-    #        elif self.status == -1: # If unflagged, flag
-    #            screen.blit(flaggedCell, self.pos)
+def flag(cell):
+    if cell.status == -2:
+        cell.status = -1
+        screen.blit(blankCell, cell.pos)
+    elif cell.status == -1:
+        cell.status == -2
+        screen.blit(flaggedCell, cell.pos)
                 
-
 
 def main():
     drawGrid()
