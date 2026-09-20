@@ -3,7 +3,7 @@ File: board.py
 Description:Manages the 10x10 Minesweeper board. The board is stored as a 2D array of Cell objects.
 Inputs:Row and column positions when accessing or modifying cells.
 Outputs: Cell objects or the entire board.
-External Sources: OpenAI ChatGPT was used to assist with integration of the Cell class with the BoardManager.
+External Sources: ChatGPT was used to assist with integration of the Cell class with the BoardManager.
 Author: Emma Roy
 Course: EECS 581 - Project 1 (Minesweeper)
 """
