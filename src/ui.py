@@ -9,10 +9,16 @@ Outputs:
     Drawn board visuals, status messages, and click-based interactions.
 External Sources:
     Stack Overflow was used as a guide for drawing a grid using pygame.
+    ChatGPT was used to assist with integrating the AI difficulty controls
+    and Interactive/Auto Solve modes into the Pygame UI.
 Author:
     Megan Svoren, GitHub Copilot
+Modified by:
+    Ever Armenta - AI UI integration
 Created:
     9/14/26
+Modified:
+    10/09/26
 """
 import pygame
 from pathlib import Path
@@ -21,16 +27,21 @@ try:
     from .board import BoardManager
     from .game import Game
     from .input_handler import InputHandler
+    from .ai_solver import AISolver
 except ImportError:  # pragma: no cover
     from board import BoardManager
     from game import Game
     from input_handler import InputHandler
+    from ai_solver import AISolver
 
 
 BOARD_ORIGIN = (200, 200)
 CELL_SIZE = 40
 BOARD_SIZE = 10
 MINE_COUNT = 10
+
+AI_AUTO_EVENT = pygame.USEREVENT + 1
+AI_AUTO_DELAY_MS = 300
 
 
 class MinesweeperUI:
@@ -44,6 +55,12 @@ class MinesweeperUI:
             board_origin=BOARD_ORIGIN,
             board_size=self.board.ROWS,
         )
+
+        self.ai_solver = AISolver(self.game)
+        self.ai_difficulty = "Medium"
+        self.ai_mode = "Interactive"
+        self.auto_running = False
+
         self.bgcolor = (110, 110, 110)
         self.assets = self._load_assets()
 
@@ -164,6 +181,91 @@ class MinesweeperUI:
         self.screen.blit(text, text_rect)
         return button_rect
 
+    # Make one AI move using the selected difficulty.
+    def run_ai_move(self):
+        if self.game.getStatus() != "IN_PROGRESS":
+            return
+
+        if self.ai_difficulty == "Medium":
+            self.ai_solver.medium_move()
+
+        elif self.ai_difficulty == "Hard":
+            self.ai_solver.hard_move()
+
+        elif self.ai_difficulty == "Easy":
+            # Easy automatically becomes usable when Viren adds easy_move()
+            # to the shared AISolver class.
+            if hasattr(self.ai_solver, "easy_move"):
+                self.ai_solver.easy_move()
+
+    # Draw the AI difficulty and operating-mode controls.
+    def draw_ai_controls(self):
+        font = pygame.font.SysFont(None, 24)
+
+        difficulty_buttons = {
+            "Easy": pygame.Rect(205, 635, 110, 38),
+            "Medium": pygame.Rect(345, 635, 110, 38),
+            "Hard": pygame.Rect(485, 635, 110, 38),
+        }
+
+        mode_buttons = {
+            "Interactive": pygame.Rect(245, 685, 140, 38),
+            "Auto Solve": pygame.Rect(415, 685, 140, 38),
+        }
+
+        easy_available = hasattr(self.ai_solver, "easy_move")
+
+        for label, rect in difficulty_buttons.items():
+            enabled = label != "Easy" or easy_available
+
+            if not enabled:
+                fill = (50, 50, 50)
+                text_color = (150, 150, 150)
+            elif label == self.ai_difficulty:
+                fill = (100, 100, 100)
+                text_color = (255, 255, 255)
+            else:
+                fill = (70, 70, 70)
+                text_color = (255, 255, 255)
+
+            pygame.draw.rect(self.screen, fill, rect)
+            pygame.draw.rect(self.screen, (255, 255, 255), rect, 2)
+
+            label_surface = font.render(label, True, text_color)
+            self.screen.blit(
+                label_surface,
+                label_surface.get_rect(center=rect.center),
+            )
+
+        for label, rect in mode_buttons.items():
+            selected = label == self.ai_mode
+            fill = (100, 100, 100) if selected else (70, 70, 70)
+
+            pygame.draw.rect(self.screen, fill, rect)
+            pygame.draw.rect(self.screen, (255, 255, 255), rect, 2)
+
+            label_surface = font.render(label, True, (255, 255, 255))
+            self.screen.blit(
+                label_surface,
+                label_surface.get_rect(center=rect.center),
+            )
+
+        start_button = None
+
+        if self.ai_mode == "Auto Solve":
+            start_button = pygame.Rect(300, 735, 200, 38)
+            pygame.draw.rect(self.screen, (70, 70, 70), start_button)
+            pygame.draw.rect(self.screen, (255, 255, 255), start_button, 2)
+
+            label = "Stop AI" if self.auto_running else "Start AI"
+            label_surface = font.render(label, True, (255, 255, 255))
+            self.screen.blit(
+                label_surface,
+                label_surface.get_rect(center=start_button.center),
+            )
+
+        return difficulty_buttons, mode_buttons, start_button
+
     # Render one cell based on its covered, flagged, mine, and number state.
     def draw_cell(self, row, col):
         cell = self.board.getCell(row, col)
@@ -198,6 +300,10 @@ class MinesweeperUI:
         self.draw_labels()
         self.draw_counter()
         self.draw_new_game_button()
+
+        if self.game.getStatus() == "IN_PROGRESS":
+            self.draw_ai_controls()
+
         pygame.display.flip()
 
     # Create a fresh board and game instance for a new round.
@@ -209,18 +315,85 @@ class MinesweeperUI:
             board_origin=BOARD_ORIGIN,
             board_size=self.board.ROWS,
         )
+        self.ai_solver = AISolver(self.game)
+        self.auto_running = False
+        pygame.time.set_timer(AI_AUTO_EVENT, 0)
         self.render()
 
-    # Handle mouse input, including the restart button after a loss.
+    # Handle player input and AI controls.
     def handle_event(self, event):
+        # Auto Solve makes one AI move every timer tick.
+        if event.type == AI_AUTO_EVENT:
+            if self.auto_running and self.game.getStatus() == "IN_PROGRESS":
+                self.run_ai_move()
+
+                if self.game.getStatus() != "IN_PROGRESS":
+                    self.auto_running = False
+                    pygame.time.set_timer(AI_AUTO_EVENT, 0)
+
+                self.render()
+
+            return
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if self.game.getStatus() == "LOST":
                 button_rect = self.draw_new_game_button()
+
                 if button_rect is not None and button_rect.collidepoint(event.pos):
                     self.reset_game()
                     return
 
+            if self.game.getStatus() == "IN_PROGRESS":
+                difficulty_buttons, mode_buttons, start_button = (
+                    self.draw_ai_controls()
+                )
+
+                # Difficulty selection.
+                for label, rect in difficulty_buttons.items():
+                    if rect.collidepoint(event.pos):
+                        if label == "Easy" and not hasattr(
+                            self.ai_solver, "easy_move"
+                        ):
+                            return
+
+                        self.ai_difficulty = label
+                        self.render()
+                        return
+
+                # Interactive / Auto Solve selection.
+                for label, rect in mode_buttons.items():
+                    if rect.collidepoint(event.pos):
+                        self.ai_mode = label
+
+                        if label == "Interactive":
+                            self.auto_running = False
+                            pygame.time.set_timer(AI_AUTO_EVENT, 0)
+
+                        self.render()
+                        return
+
+                # Start or stop automatic solving.
+                if (
+                    self.ai_mode == "Auto Solve"
+                    and start_button is not None
+                    and start_button.collidepoint(event.pos)
+                ):
+                    self.auto_running = not self.auto_running
+
+                    pygame.time.set_timer(
+                        AI_AUTO_EVENT,
+                        AI_AUTO_DELAY_MS if self.auto_running else 0,
+                    )
+
+                    self.render()
+                    return
+
+        # Ignore normal board clicks while Auto Solve is actively running.
+        if self.auto_running:
+            return
+
         action = self.input_handler.handle_event(event)
+
         if action is None:
             return
 
@@ -229,8 +402,16 @@ class MinesweeperUI:
 
         if action["action"] == "uncover":
             self.game.uncover(row, col)
+
         elif action["action"] == "flag":
             self.game.toggleFlag(row, col)
+
+        # In Interactive mode, every player action is followed by one AI turn.
+        if (
+            self.ai_mode == "Interactive"
+            and self.game.getStatus() == "IN_PROGRESS"
+        ):
+            self.run_ai_move()
 
         self.render()
 
